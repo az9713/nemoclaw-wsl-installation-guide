@@ -1,0 +1,7 @@
+NemoClaw/
+node-*.tar.xz
+SHASUMS256.txt
+*.sh
+*.txt
+*.jpg
+npm-cache/
