@@ -180,7 +180,61 @@ If it refuses to connect, ensure the sandbox is running (`nemoclaw nemo-1 connec
 
 ---
 
-## 8. Get Files Out of the Sandbox
+## 8. Network Access — Let the Agent Use the Web
+
+By default, the sandbox **blocks all outbound network requests** except domains allowed by your policy presets (pypi, npm, etc.). If the agent tries to reach a website (e.g. Hacker News), it will fail silently or fall back to mock data. This is by design — NemoClaw's value is that you control what the agent can access.
+
+### Option A: Approve requests in real time (recommended)
+
+Open a **second WSL terminal** while the agent is running:
+
+```bash
+openshell term
+```
+
+This shows a live feed of blocked network requests. When the agent tries to reach a URL, you see it and can approve or deny. This is NemoClaw's intended workflow — a human-in-the-loop firewall.
+
+### Option B: Add policy presets
+
+```bash
+# See what presets are available
+nemoclaw nemo-1 policy-list
+
+# Add a preset
+nemoclaw nemo-1 policy-add
+```
+
+### Option C: Tasks that don't need the web
+
+If you just want to test the agent without network access, try prompts that work entirely within the sandbox:
+
+```
+Write a Python script that generates the first 20 Fibonacci numbers, saves them to fibonacci.json, runs it, and shows the results.
+```
+
+```
+Create a simple Node.js HTTP server on port 3000, start it, curl it, then shut it down. Show me all the code and output.
+```
+
+```
+Write a bash script that checks disk usage, memory, and running processes in this sandbox, then run it.
+```
+
+### Why the network is locked down
+
+| Scenario | Claude Code | NemoClaw |
+|----------|-------------|----------|
+| Agent accesses any URL | Allowed (no restrictions) | Blocked unless you approve |
+| Running untrusted prompts | Risk: agent could exfiltrate data | Safe: network policy prevents it |
+| Audit trail of external calls | None | Every request logged and governed |
+| Autonomous agent (Telegram/Slack) | No guardrails | You control exactly which domains it reaches |
+| Self-hosted models on-prem | Data goes to Anthropic | Data stays on your network |
+
+> **Bottom line:** For casual personal dev work, Claude Code is simpler. NemoClaw is for when the agent needs to run autonomously, handle untrusted input, or operate in regulated environments where you need to control and audit every external call.
+
+---
+
+## 9. Get Files Out of the Sandbox
 
 ```bash
 # From WSL (outside the sandbox)
@@ -192,7 +246,7 @@ cat myfile.py
 
 ---
 
-## 9. Destroy and Recreate
+## 10. Destroy and Recreate
 
 ```bash
 # Destroy
@@ -204,7 +258,7 @@ NEMOCLAW_NO_GPU=1 nemoclaw onboard
 
 ---
 
-## 10. Stop Everything
+## 11. Stop Everything
 
 ```bash
 # Stop Telegram bridge and services
