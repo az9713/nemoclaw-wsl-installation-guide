@@ -17,6 +17,12 @@ This guide was born from a real installation session that encountered and resolv
   - **Quick reference table** — all problems and solutions at a glance
   - **Background** — how the official installer actually works and why it fails in WSL2
 
+- **[CHEATSHEET.md](CHEATSHEET.md)** — Copy-paste command sequences for every workflow:
+  - Fresh install, onboarding, daily use, reconnect after reboot
+  - Fix API keys, Telegram bridge, Web UI, file extraction
+  - Quick troubleshooting table for every known error
+  - Make MTU fix permanent (no more password prompts)
+
 - **[ONBOARDING_GUIDE.md](ONBOARDING_GUIDE.md)** — Running `nemoclaw onboard` on WSL2:
   - **TL;DR one-shot onboarding** — prerequisites, exact command, and what to type at every prompt
   - **5 problems documented** — Docker, CRLF, cgroup v2, API key surprise, and false GPU detection
