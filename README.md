@@ -54,6 +54,11 @@ This guide was born from a real installation session that encountered and resolv
 - Git for Windows
 - An NVIDIA developer account (for API key during onboarding)
 
+## Live Demo
+
+<!-- TODO: Replace with actual video URL once GitHub renders it (see #1) -->
+https://github.com/az9713/nemoclaw-wsl-installation-guide/blob/main/nemoclaw_live_demo_compressed.mp4
+
 ## Quick Start
 
 See the [TL;DR section](INSTALLATION_GUIDE.md#tldr--one-shot-install-scripts) for the fastest path.

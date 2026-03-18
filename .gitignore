@@ -1,7 +1,9 @@
 NemoClaw/
+NemoClaw_tutorial/
 node-*.tar.xz
 SHASUMS256.txt
 *.sh
 *.txt
 *.jpg
 npm-cache/
+nemoclaw_live_demo.mp4
