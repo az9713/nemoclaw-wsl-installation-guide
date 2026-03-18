@@ -56,8 +56,7 @@ This guide was born from a real installation session that encountered and resolv
 
 ## Live Demo
 
-<!-- TODO: Replace with actual video URL once GitHub renders it (see #1) -->
-https://github.com/az9713/nemoclaw-wsl-installation-guide/blob/main/nemoclaw_live_demo_compressed.mp4
+https://github.com/user-attachments/assets/159bb1f4-4dfb-48e6-85cd-9933306a7746
 
 ## Quick Start
 
