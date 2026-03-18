@@ -16,6 +16,7 @@ This guide documents every problem encountered running `nemoclaw onboard` after 
    - [Problem 3: cgroup v2 Not Configured for Docker Desktop](#problem-3-cgroup-v2-not-configured-for-docker-desktop)
    - [Problem 4: NVIDIA API Key Prompt During setup-spark](#problem-4-nvidia-api-key-prompt-during-setup-spark)
    - [Problem 5: False GPU Detection (Docker Desktop Virtual GPU)](#problem-5-false-gpu-detection-docker-desktop-virtual-gpu)
+   - [Problem 6: HTTP 403 When Chatting (API Key Not Reaching the Sandbox)](#problem-6-http-403-when-chatting-api-key-not-reaching-the-sandbox)
 3. [Quick Reference Table](#quick-reference-table)
 4. [The False GPU Detection Problem — Deep Dive](#the-false-gpu-detection-problem--deep-dive)
 
@@ -339,6 +340,66 @@ After running with `NEMOCLAW_NO_GPU=1`:
 
 ---
 
+### Problem 6: HTTP 403 When Chatting (API Key Not Reaching the Sandbox)
+
+**Symptom:**
+
+The OpenClaw TUI launches successfully and you can type messages, but every message returns:
+
+```
+HTTP 403: status code (no body)
+```
+
+or:
+
+```
+run error: 403 status code (no body)
+```
+
+The status bar shows the model name and connection status as normal, but no response is generated.
+
+**Root Cause:**
+
+The NVIDIA Cloud API is rejecting the inference request with a 403 Forbidden. This can happen for several reasons:
+
+1. **Invalid or expired API key** — the key stored during onboarding may have been rotated, revoked, or entered incorrectly
+2. **Key saved in the wrong location** — NemoClaw stores credentials in `~/.nemoclaw/credentials.json` on the host WSL filesystem, but the inference request goes through the **OpenShell gateway's provider**, which has its own copy of the key. Updating the local file does not update the gateway.
+3. **Key entered under sudo** — if `nemoclaw setup-spark` was run with `sudo` before onboarding, the API key may have been saved to `/root/.nemoclaw/credentials.json` instead of `/home/<user>/.nemoclaw/credentials.json`. When onboarding later runs without sudo, it may not find the key and either prompt again or use a stale value.
+
+**What does NOT work:**
+
+```bash
+# This updates the HOST file, but the gateway provider has its own copy
+vi ~/.nemoclaw/credentials.json
+```
+
+Editing the local credentials file has no effect on the running gateway provider. The gateway reads the key when the provider is created or updated, not at request time from the filesystem.
+
+**Solution:**
+
+Update the API key directly in the OpenShell gateway provider:
+
+```bash
+# Exit the sandbox first (Ctrl+C to exit TUI, then 'exit' to leave sandbox)
+
+# Update the provider credential in the gateway
+openshell provider update nvidia-nim --credential "NVIDIA_API_KEY=nvapi-your-new-key-here"
+
+# Reconnect and test
+nemoclaw nemo-1 connect
+openclaw tui
+```
+
+> **Note:** If you need a new API key, generate one at https://build.nvidia.com/settings/api-keys. The key starts with `nvapi-`.
+
+**Verification:**
+
+After updating the provider, send a message in the TUI. If the agent responds with actual content instead of a 403 error, the key is working. The first one or two messages after a key change may still return 403 if they were queued before the update — send a fresh message to confirm.
+
+> **Tip:** To avoid this problem entirely, have your NVIDIA API key ready before starting onboarding. When Step 4 prompts for it, paste the correct key. It will be stored in both the local credentials file and the gateway provider in one step.
+
+---
+
 ## Quick Reference Table
 
 | # | Problem | Symptom | Root Cause | Solution |
@@ -349,6 +410,7 @@ After running with `NEMOCLAW_NO_GPU=1`:
 | 3b | `nemoclaw setup-spark` fails | `Unit docker.service not found` | Docker Desktop does not create a systemd unit; `setup-spark` assumes systemd | Never use `systemctl` or `setup-spark` for Docker Desktop — use the Docker Desktop UI only |
 | 4 | Unexpected API key prompt | `nemoclaw setup-spark` asks for NVIDIA API key before failing | `setup-spark` combines credential storage and cgroup config in one command | Key is saved to `~/.nemoclaw/credentials.json`; no re-entry needed during onboarding |
 | 5 | False GPU detection | Onboarding completes but `connect` fails with "sandbox not found" | Docker Desktop virtual GPU responds to `nvidia-smi`; NemoClaw creates GPU sandbox which gateway rejects; silent failure | Destroy existing sandbox, then run `NEMOCLAW_NO_GPU=1 nemoclaw onboard` |
+| 6 | HTTP 403 when chatting | `HTTP 403: status code (no body)` in OpenClaw TUI | API key invalid, expired, or not propagated to the gateway provider | Run `openshell provider update nvidia-nim --credential "NVIDIA_API_KEY=nvapi-..."` from the host (outside the sandbox) |
 
 ---
 
