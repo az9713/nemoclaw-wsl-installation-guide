@@ -1,12 +1,12 @@
-# NemoClaw WSL2 Installation Guide
+# NemoClaw WSL2 Guide
 
-A comprehensive guide for installing [NVIDIA NemoClaw](https://docs.nvidia.com/nemoclaw/latest/index.html) on Windows 11 via WSL2 (Ubuntu).
+A comprehensive guide for installing, onboarding, and using [NVIDIA NemoClaw](https://docs.nvidia.com/nemoclaw/latest/index.html) on Windows 11 via WSL2 (Ubuntu).
 
 ## Why This Guide Exists
 
-The official NemoClaw installer (`curl -fsSL https://nvidia.com/nemoclaw.sh | bash`) assumes a native Linux environment. Running it inside WSL2 triggers a cascade of issues — SSL failures, permission errors, line ending corruption, npm placeholder traps, and Docker cgroup misconfigs — that are not documented anywhere.
+The official NemoClaw installer (`curl -fsSL https://nvidia.com/nemoclaw.sh | bash`) assumes a native Linux environment. Running it inside WSL2 triggers a cascade of issues — SSL failures, permission errors, line ending corruption, npm placeholder traps, Docker cgroup misconfigs, false GPU detection, and more — that are not documented anywhere.
 
-This guide was born from a real installation session that encountered and resolved **8 distinct problems** before NemoClaw was successfully installed.
+This guide was born from a real session that encountered and resolved **9 distinct problems** across installation, onboarding, and daily usage.
 
 ## What's Inside
 
