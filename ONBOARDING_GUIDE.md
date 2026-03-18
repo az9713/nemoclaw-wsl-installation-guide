@@ -17,6 +17,7 @@ This guide documents every problem encountered running `nemoclaw onboard` after 
    - [Problem 4: NVIDIA API Key Prompt During setup-spark](#problem-4-nvidia-api-key-prompt-during-setup-spark)
    - [Problem 5: False GPU Detection (Docker Desktop Virtual GPU)](#problem-5-false-gpu-detection-docker-desktop-virtual-gpu)
    - [Problem 6: HTTP 403 When Chatting (API Key Not Reaching the Sandbox)](#problem-6-http-403-when-chatting-api-key-not-reaching-the-sandbox)
+   - [Problem 7: Telegram Bridge — "Agent exited with code 255"](#problem-7-telegram-bridge--agent-exited-with-code-255)
 3. [Quick Reference Table](#quick-reference-table)
 4. [The False GPU Detection Problem — Deep Dive](#the-false-gpu-detection-problem--deep-dive)
 
@@ -400,6 +401,70 @@ After updating the provider, send a message in the TUI. If the agent responds wi
 
 ---
 
+### Problem 7: Telegram Bridge — "Agent exited with code 255"
+
+> **Status:** Partially resolved. The root cause was identified but full end-to-end Telegram functionality was not confirmed in this WSL2 + Docker Desktop environment.
+
+**Symptom:**
+
+After setting up the Telegram bridge and sending a message to the bot, the bot replies with:
+
+```
+Agent exited with code 255. Error: × status: NotFound ...
+```
+
+**Root Cause (identified):**
+
+The Telegram bridge script (`scripts/telegram-bridge.js`) defaults to a sandbox named `"nemoclaw"`:
+
+```javascript
+const SANDBOX = process.env.SANDBOX_NAME || "nemoclaw";
+```
+
+If your sandbox has a different name (e.g. `nemo-1`), the bridge tries to connect to a non-existent sandbox called `nemoclaw`, which fails with "NotFound".
+
+**Additional contributing factors (suspected):**
+
+1. **Sandbox must be actively running** — the bridge uses `openshell sandbox ssh-config` to SSH into the sandbox. If the sandbox is not running or connected, this fails. You need `nemoclaw <name> connect` running in a separate terminal to keep the sandbox alive.
+
+2. **WSL2 networking limitations** — the bridge makes HTTPS calls to the Telegram API (`api.telegram.org`) from WSL2. Depending on whether the MTU fix is still in effect and the state of Node.js SSL, these calls may fail silently.
+
+3. **Multiple environment variables required** — the bridge requires both `TELEGRAM_BOT_TOKEN` and `NVIDIA_API_KEY` to be set. If `NVIDIA_API_KEY` is missing from the environment when `nemoclaw start` is called, the bridge process starts but cannot forward messages to the inference provider.
+
+**Attempted fix:**
+
+```bash
+nemoclaw stop
+export TELEGRAM_BOT_TOKEN="your-token"
+export SANDBOX_NAME="nemo-1"
+nemoclaw start
+```
+
+This sets the correct sandbox name. In a separate terminal:
+
+```bash
+nemoclaw nemo-1 connect
+```
+
+This keeps the sandbox running. However, the bridge still returned errors, suggesting additional connectivity or configuration issues specific to the WSL2 + Docker Desktop environment.
+
+**What does work:**
+
+The **OpenClaw TUI** (`openclaw tui` from inside the sandbox) works reliably. If Telegram integration is essential, consider:
+
+- Running NemoClaw on a native Linux machine or VM where networking is straightforward
+- Deploying to a remote GPU instance (`nemoclaw deploy`) which has native networking
+- Using the Web UI at `http://127.0.0.1:18789/` (requires port forwarding to be active: `openshell forward start --background 18789 nemo-1`)
+
+> **Note for future investigation:** The bridge log output is not written to a file by default, making debugging difficult. To capture logs, start the bridge manually:
+> ```bash
+> TELEGRAM_BOT_TOKEN="your-token" NVIDIA_API_KEY="your-key" SANDBOX_NAME="nemo-1" \
+>   node /mnt/c/users/simon/Downloads/nemoclaw/NemoClaw/scripts/telegram-bridge.js 2>&1 | tee /tmp/telegram-bridge.log
+> ```
+> This captures all output to `/tmp/telegram-bridge.log` for inspection.
+
+---
+
 ## Quick Reference Table
 
 | # | Problem | Symptom | Root Cause | Solution |
@@ -411,6 +476,7 @@ After updating the provider, send a message in the TUI. If the agent responds wi
 | 4 | Unexpected API key prompt | `nemoclaw setup-spark` asks for NVIDIA API key before failing | `setup-spark` combines credential storage and cgroup config in one command | Key is saved to `~/.nemoclaw/credentials.json`; no re-entry needed during onboarding |
 | 5 | False GPU detection | Onboarding completes but `connect` fails with "sandbox not found" | Docker Desktop virtual GPU responds to `nvidia-smi`; NemoClaw creates GPU sandbox which gateway rejects; silent failure | Destroy existing sandbox, then run `NEMOCLAW_NO_GPU=1 nemoclaw onboard` |
 | 6 | HTTP 403 when chatting | `HTTP 403: status code (no body)` in OpenClaw TUI | API key invalid, expired, or not propagated to the gateway provider | Run `openshell provider update nvidia-nim --credential "NVIDIA_API_KEY=nvapi-..."` from the host (outside the sandbox) |
+| 7 | Telegram bridge fails | `Agent exited with code 255` in Telegram | Bridge defaults to sandbox name `"nemoclaw"` instead of your actual sandbox name; sandbox may not be running | Set `SANDBOX_NAME=nemo-1`, keep sandbox connected in separate terminal; **not fully resolved on WSL2** |
 
 ---
 
